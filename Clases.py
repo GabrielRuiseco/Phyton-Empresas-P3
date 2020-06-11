@@ -2,33 +2,41 @@ import sys
 import Mongo
 import json
 
+mCon = Mongo.MongoConect()
+DB = mCon.CLIENT['IOT']
+Empresas = DB['Empresas']
+Catalogo = DB['Catalogo']
 
-class detalle:
+
+class Detalle:
     def __init__(self):
         self.productos = []
 
-    def addProduct(self, producto, cantidad):
-        self.productos.append({producto, cantidad})
+    def addProduct(self, productoId, cantidad):
+        self.productos.append({productoId, cantidad})
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-class compras:
+class Compras:
     def __init__(self):
         self.date = None
         self.total = 0
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-class catalogo:
-    def __init__(self):
-        self.lista = []
+# class Catalogo:
+#     def __init__(self):
+#         self.lista = []
+#
+#     def addProduct(self, producto):
+#         self.lista.append(producto)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-class producto:
-    def __init__(self):
-        self.costo = 0
-        self.nombre = ""
+class Producto:
+    def __init__(self, name, price):
+        self.nombre = name
+        self.costo = price
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -46,7 +54,7 @@ class Interface:
     def __init__(self):
         self.empresasArr = []
 
-    def agregarEmpleado(self, rfc, nombre, direccion):
+    def agregarCliente(self, rfc, nombre, direccion):
         self.cliente = Cliente(rfc, nombre, direccion)
         self.empresa.clientes.append(self.cliente)
 
@@ -56,7 +64,7 @@ class Interface:
         self.empresasArr.append(self.empresas)
 
     def printAll(self):
-        if self.empresas != "":
+        if self.empresasArr:
             print(repr(self.empresasArr))
         else:
             print("\nNo existen registros")
@@ -93,9 +101,15 @@ class Cliente:
     compras = []
 
     def __init__(self, rfc, nombre, direccion, compras=None):
+        if compras is None:
+            compras = []
         self.rfcc = rfc
         self.nom = nombre
         self.direc = direccion
+        self.compras = compras
+
+    def agregarCompra(self, c):
+        self.compras.append(c)
 
     def __repr__(self):
         return "Cliente rfcc:%s nom:%s direc:%s" % (self.rfcc, self.nom, self.direc)
@@ -108,7 +122,7 @@ class Menu:
         self.inter = Interface()
 
     def showMenu(self):
-        print("\n\nMENU DE REGISTRO\n\n1) Nueva Empresa\n2) Mostrar\n4) Fin")
+        print("\n\nMENU DE REGISTRO\n\n1) Nueva Empresa\n2) Mostrar\n3) Nuevo Producto\n4) Fin")
 
     def registro(self):
         print("\nRegistre una nueva Empresa")
@@ -117,19 +131,26 @@ class Menu:
         d = input("Introduce la Dirección: ")
         self.inter.agregarEmpresa(r, n, d)
 
-    def empleado(self):
+    def cliente(self):
         print("\nRegistre un nuevo Cliente")
         r = input("Introduce el Rfc: ")
         n = input("Introduce el Nombre: ")
         d = input("Introduce la Dirección: ")
-        self.inter.agregarEmpleado(r, n, d)
+        self.inter.agregarCliente(r, n, d)
+
+    def addProduct(self):
+        print("\nRegistre un nuevo producto")
+        name = input("Introduce el nombre: ")
+        price = input("Introduce el precio: ")
+        self.newProd = Producto(name, price).__dict__
+        Mongo.MongoConect.create(mCon, Catalogo, self.newProd)
 
     def mostrar(self):
         print("\n")
         self.inter.printAll()
         self.showMenu()
 
-    def salir(self):
+    def endProg(self):
         print("\n")
         print("Fin del programa")
         sys.exit()

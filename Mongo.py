@@ -5,25 +5,23 @@ class MongoConect:
     def __init__(self):
         self.CLIENT = MongoClient(
             "mongodb+srv://Admin:123asterisco@practica1-hjadu.mongodb.net/Practica1?retryWrites=true&w=majority")
-        self.DB = self.CLIENT['IOT']
-        self.EMPRESAS = self.DB['Empresas']
 
-    def create(self, x):
-        self.EMPRESAS.insert_one(x)
+    def create(self, collection, x):
+        collection.insert_one(x)
 
-    def search(self, **kwargs):
-        self.results = self.EMPRESAS.find(kwargs)
+    def search(self, collection, **kwargs):
+        self.results = collection.find(kwargs)
         for r in self.results:
             print(r)
 
-    def delete(self, **kwargs):
-        self.campos = self.EMPRESAS.delete_one(kwargs)
+    def delete(self, collection, **kwargs):
+        self.campos = collection.delete_one(kwargs)
 
-    def update(self, **kwargs):
-        self.keys = self.EMPRESAS.update_one(kwargs)
+    def update(self, collection, **kwargs):
+        self.keys = collection.update_one(kwargs)
 
-    def deleteMany(self, **kwargs):
-        self.keys = self.EMPRESAS.delete_many(kwargs)
+    def deleteMany(self, collection, **kwargs):
+        self.keys = collection.delete_many(kwargs)
 
-    def updateMany(self, **kwargs):
-        self.keys = self.EMPRESAS.update_many(kwargs)
+    def updateMany(self, collection, **kwargs):
+        self.keys = collection.update_many(kwargs)
