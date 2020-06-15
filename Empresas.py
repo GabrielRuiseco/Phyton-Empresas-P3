@@ -2,6 +2,7 @@ import Clases
 
 menu = Clases.Menu()
 opc = input("\nSeleccione una opcion:")
+
 if opc == "1" or opc == "2" or opc == "3" or opc == "4" or opc == "5" or opc == "6":
     while opc != "6":
         if opc == "1":

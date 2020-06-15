@@ -1,6 +1,7 @@
 import sys
 import Mongo
 import datetime
+import json
 
 mCon = Mongo.MongoConect()
 DB = mCon.CLIENT['IOT']
@@ -14,24 +15,26 @@ def find(name, collection):
     return obj
 
 
+# ----------------------------------------------------------------------------------------------------------------------
 class Compra:
     def __init__(self):
         self.date = datetime.datetime.now()
         self.total = 0
         self.detalle = []
 
-    def addProduct(self, prod):
-        self.detalle.append(prod)
-        self.sumAllProd()
+    # def addProduct(self, prod: object):
+    #     self.detalle.append(prod)
+    #     print(self.detalle)
+    #     # self.sumAllProd()
 
     def findProd(self):
         self.name = input("\nIntroduce el nombre del articulo: ")
         obj = find(self.name, Catalogo)
         return obj
 
-    def sumAllProd(self):
-        for x in self.detalle:
-            self.total += x.costo
+    # def sumAllProd(self):
+    #     for x in self.detalle:
+    #         self.total: float = self.total + x
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -89,26 +92,38 @@ class Interface:
             Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs)
         else:
             self.cliente = Menu.cliente()
-            kwargs = {"arg1": {"name": self.empresa.nombre}, "arg2": {'$set': {"clientes": self.cliente.__dict__}}}
+            kwargs = {"arg1": {"name": str(self.empresa.nombre)},
+                      "arg2": {'$push': {"clientes": self.cliente.__dict__}}}
             Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs)
 
     def agregarEmpresa(self):
         self.empresa = Menu.registro()
         Mongo.MongoConect.create(mCon, Empresas, self.empresa.__dict__)
 
-    def agregarCompra(self, c):
+    def agregarCompra(self):
         self.compra = Compra()
+        self.nomemp = input("Nombre de la empresa en que se realiza la compra:")
         self.name = input("Nombre del cliente que realiza la compra:")
+        kwargs = {"arg1": {"Clientes": {"nom": str(self.name)}, "name": str(self.nomemp)},
+                  "arg2": {"$push": {"compras": self.compra.__dict__}}}
+        Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs)
         self.prod = self.compra.findProd()
-        self.compra.addProduct(self.prod)
+        kwargs = {
+            "arg1": {"Clientes": {"nom": str(self.name)}, "name": str(self.nomemp), "date": str(self.compra.date)},
+            "arg2": {"$push": {"detalle": self.prod}}}
+        Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs)
         opt = input("¿Desea agregar otro producto?")
         while opt != "no":
             self.prod = self.compra.findProd()
-            self.compra.addProduct(self.prod)
+            kwargs = {
+                "arg1": {"Clientes": {"nom": str(self.name)}, "name": str(self.nomemp), "date": str(self.compra.date)},
+                "arg2": {"$push": {"detalle": self.prod}}}
+            Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs)
             opt = input("¿Desea agregar otro producto?")
-        kwargs1 = {"name": self.name}
-        kwargs2 = {"$push": {"compras": self.compra.__dict__}}
-        Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs1, **kwargs2)
+        kwargs = {
+            "arg1": {"Clientes": {"nom": str(self.name)}, "name": str(self.nomemp), "date": str(self.compra.date)},
+            "arg2": {"$set": {"total": {"$sum": "$costo"}}}}
+        Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs)
 
     def printAll(self):
         print("\n" + str(Mongo.MongoConect.search(mCon, Empresas)))
