@@ -1,6 +1,6 @@
 import sys
 import Mongo
-import json
+import datetime
 
 mCon = Mongo.MongoConect()
 DB = mCon.CLIENT['IOT']
@@ -8,19 +8,44 @@ Empresas = DB['Empresas']
 Catalogo = DB['Catalogo']
 
 
-class Detalle:
-    def __init__(self):
-        self.productos = []
+def find(name, collection):
+    kwargs = {"nombre": name}
+    obj: dict = Mongo.MongoConect.search(mCon, collection, **kwargs)
+    return obj
 
-    def addProduct(self, productoId, cantidad):
-        self.productos.append({productoId, cantidad})
+
+class Compra:
+    def __init__(self):
+        self.date = datetime.datetime.now()
+        self.total = 0
+        self.detalle = []
+
+    def addProduct(self, prod):
+        self.detalle.append(prod)
+        self.sumAllProd()
+
+    def findProd(self):
+        self.name = input("\nIntroduce el nombre del articulo: ")
+        obj = find(self.name, Catalogo)
+        return obj
+
+    def sumAllProd(self):
+        for x in self.detalle:
+            self.total += x.costo
 
 
 # ----------------------------------------------------------------------------------------------------------------------
-class Compras:
-    def __init__(self):
-        self.date = None
-        self.total = 0
+# class Compras:
+#     detail = {}
+#
+#     def __init__(self, det=None):
+#         if det is None:
+#             det = {}
+#         self.date = None
+#         self.total = 0
+#         self.detail = det
+#
+#     def add
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -36,7 +61,7 @@ class Compras:
 class Producto:
     def __init__(self, name, price):
         self.nombre = name
-        self.costo = price
+        self.costo = float(price)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -51,29 +76,42 @@ class Emp:
 
 # ----------------------------------------------------------------------------------------------------------------------
 class Interface:
+
     def __init__(self):
-        self.empresasArr = []
+        self.empresa = None
+        pass
 
-    def agregarCliente(self, rfc, nombre, direccion):
-        self.cliente = Cliente(rfc, nombre, direccion)
-        self.empresa.clientes.append(self.cliente)
+    def agregarCliente(self):
+        if self.empresa is None:
+            rfc = input("Ingresa el rfc de la empresa: ")
+            self.cliente = Menu.cliente()
+            kwargs = {"arg1": {"rfc": str(rfc)}, "arg2": {'$push': {"clientes": self.cliente.__dict__}}}
+            Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs)
+        else:
+            self.cliente = Menu.cliente()
+            kwargs = {"arg1": {"name": self.empresa.nombre}, "arg2": {'$set': {"clientes": self.cliente.__dict__}}}
+            Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs)
 
-    def agregarEmpresa(self, rfc, nombre, direccion):
-        self.empresa = Empresa(rfc, nombre, direccion)
-        self.empresas = Emp(self.empresa.nombre, self.empresa)
-        self.empresasArr.append(self.empresas)
+    def agregarEmpresa(self):
+        self.empresa = Menu.registro()
+        Mongo.MongoConect.create(mCon, Empresas, self.empresa.__dict__)
+
+    def agregarCompra(self, c):
+        self.compra = Compra()
+        self.name = input("Nombre del cliente que realiza la compra:")
+        self.prod = self.compra.findProd()
+        self.compra.addProduct(self.prod)
+        opt = input("¿Desea agregar otro producto?")
+        while opt != "no":
+            self.prod = self.compra.findProd()
+            self.compra.addProduct(self.prod)
+            opt = input("¿Desea agregar otro producto?")
+        kwargs1 = {"name": self.name}
+        kwargs2 = {"$push": {"compras": self.compra.__dict__}}
+        Mongo.MongoConect.updateMongo(mCon, Empresas, **kwargs1, **kwargs2)
 
     def printAll(self):
-        if self.empresasArr:
-            print(repr(self.empresasArr))
-        else:
-            print("\nNo existen registros")
-
-    def createAtDB(self):
-        self.data = self.empresasArr[-1].__dict__
-        print(self.data)
-        # self.mc = Mongo.MongoConect()
-        # Mongo.MongoConect.create(self.mc, self.data)
+        print("\n" + str(Mongo.MongoConect.search(mCon, Empresas)))
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -108,9 +146,6 @@ class Cliente:
         self.direc = direccion
         self.compras = compras
 
-    def agregarCompra(self, c):
-        self.compras.append(c)
-
     def __repr__(self):
         return "Cliente rfcc:%s nom:%s direc:%s" % (self.rfcc, self.nom, self.direc)
 
@@ -122,21 +157,26 @@ class Menu:
         self.inter = Interface()
 
     def showMenu(self):
-        print("\n\nMENU DE REGISTRO\n\n1) Nueva Empresa\n2) Mostrar\n3) Nuevo Producto\n4) Fin")
+        print(
+            "\n\nMENU DE REGISTRO\n\n1) Nueva Empresa\n2) Mostrar\n3) Nuevo Producto\n4) Registrar Compra\n5) Registrar Cliente \n6) Fin")
 
-    def registro(self):
+    @staticmethod
+    def registro():
         print("\nRegistre una nueva Empresa")
         r = input("Introduce el Rfc: ")
         n = input("Introduce el Nombre: ")
         d = input("Introduce la Dirección: ")
-        self.inter.agregarEmpresa(r, n, d)
+        empresa = Empresa(r, n, d)
+        return empresa
 
-    def cliente(self):
+    @staticmethod
+    def cliente():
         print("\nRegistre un nuevo Cliente")
         r = input("Introduce el Rfc: ")
         n = input("Introduce el Nombre: ")
         d = input("Introduce la Dirección: ")
-        self.inter.agregarCliente(r, n, d)
+        cliente = Cliente(r, n, d)
+        return cliente
 
     def addProduct(self):
         print("\nRegistre un nuevo producto")
@@ -144,6 +184,10 @@ class Menu:
         price = input("Introduce el precio: ")
         self.newProd = Producto(name, price).__dict__
         Mongo.MongoConect.create(mCon, Catalogo, self.newProd)
+
+    # def updateEmpresa(self):
+    #     self.name = input("\nIngrese el nombre de la empresa que desea actualizar:")
+    #     kwargs = {{"name": self.name}, {"$push": {"clientes": ""}}}
 
     def mostrar(self):
         print("\n")

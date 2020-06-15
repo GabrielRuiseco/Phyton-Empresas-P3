@@ -11,14 +11,15 @@ class MongoConect:
 
     def search(self, collection, **kwargs):
         self.results = collection.find(kwargs)
-        for r in self.results:
-            print(r)
+        self.all = '\n'.join([str(r) for r in self.results])
+        return self.all
 
-    def delete(self, collection, **kwargs):
-        self.campos = collection.delete_one(kwargs)
+    def deleteMongo(self, collection, **kwargs):
+        collection.delete_one(kwargs)
 
-    def update(self, collection, **kwargs):
-        self.keys = collection.update_one(kwargs)
+    def updateMongo(self, collection, arg1, arg2):
+        collection.update_one(arg1, arg2)
+        # print(str(arg1), "\n" + str(arg2))
 
     def deleteMany(self, collection, **kwargs):
         self.keys = collection.delete_many(kwargs)
